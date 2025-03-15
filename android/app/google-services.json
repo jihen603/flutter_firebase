@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "1033461052553",
+    "firebase_url": "https://final-project-db32a-default-rtdb.firebaseio.com",
+    "project_id": "final-project-db32a",
+    "storage_bucket": "final-project-db32a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1033461052553:android:643e2de6edf3d6ef464258",
+        "android_client_info": {
+          "package_name": "com.example.untitled1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC8WG4hJO42pauCx0hUz5AnL5X6EpA8VU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1033461052553:android:a6a77dd775427d57464258",
+        "android_client_info": {
+          "package_name": "com.example.untitled123"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC8WG4hJO42pauCx0hUz5AnL5X6EpA8VU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
