@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'dart:ui';
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:untitled123/services/database_service.dart';
@@ -22,9 +24,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   String temperature = "Loading...";
   bool isLoading = true;  // Variable pour gérer l'affichage de l'indicateur de chargement
 
+  // Clé et IV à utiliser pour AES (assurez-vous qu'ils sont corrects et en format Base64 ou hex)
+  final key = encrypt.Key.fromUtf8('your-32-char-key-here-your-32'); // Exemple de clé 32 caractères
+  final iv = encrypt.IV.fromUtf8('your-16-char-iv-here'); // Exemple de IV 16 caractères
+  late AESHelper aesDecryption;
+
   @override
   void initState() {
     super.initState();
+    aesDecryption = AESHelper(key, iv); // Initialisation de l'objet AESHelper
     _fetchSensorData();
   }
 
@@ -39,8 +47,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         if (encryptedHumidity.isNotEmpty && encryptedTemperature.isNotEmpty) {
           try {
             setState(() {
-              humidity = AESHelper.decryptAES(encryptedHumidity);
-              temperature = AESHelper.decryptAES(encryptedTemperature);
+              humidity = aesDecryption.decryptAES(encryptedHumidity); // Décryptage avec AESHelper
+              temperature = aesDecryption.decryptAES(encryptedTemperature);
               isLoading = false;  // Lorsque les données sont décryptées, on arrête le chargement
             });
           } catch (e) {
