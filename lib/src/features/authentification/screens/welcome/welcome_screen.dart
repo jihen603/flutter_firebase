@@ -29,17 +29,35 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _fetchSensorData() {
     _database.child("DHT/humidity").onValue.listen((event) {
-      final encryptedHumidity = event.snapshot.value.toString();
-      setState(() {
-        humidity = AESHelper.decryptAES(encryptedHumidity);
-      });
+      final encryptedHumidity = event.snapshot.value?.toString() ?? '';
+      print('Encrypted Humidity: $encryptedHumidity'); // Débogage
+      if (encryptedHumidity.isNotEmpty) {
+        try {
+          setState(() {
+            humidity = AESHelper.decryptAES(encryptedHumidity);
+          });
+        } catch (e) {
+          print('Decryption error for humidity: $e');
+        }
+      } else {
+        print('Humidity data is empty or null');
+      }
     });
 
     _database.child("DHT/temperature").onValue.listen((event) {
-      final encryptedTemperature = event.snapshot.value.toString();
-      setState(() {
-        temperature = AESHelper.decryptAES(encryptedTemperature);
-      });
+      final encryptedTemperature = event.snapshot.value?.toString() ?? '';
+      print('Encrypted Temperature: $encryptedTemperature'); // Débogage
+      if (encryptedTemperature.isNotEmpty) {
+        try {
+          setState(() {
+            temperature = AESHelper.decryptAES(encryptedTemperature);
+          });
+        } catch (e) {
+          print('Decryption error for temperature: $e');
+        }
+      } else {
+        print('Temperature data is empty or null');
+      }
     });
   }
 
