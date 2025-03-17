@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'dart:typed_data'; // ✅ Bibliothèque correcte pour Uint8List
-import 'package:crypto/crypto.dart';
+import 'dart:typed_data';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 class AESHelper {
@@ -14,9 +12,19 @@ class AESHelper {
     0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00
   ]));
 
+  // Fonction pour déchiffrer le texte chiffré avec AES
   static String decryptAES(String encryptedText) {
-    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-    final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
-    return decrypted;
+    try {
+      final encrypter = encrypt.Encrypter(
+        encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: 'PKCS7'),
+      );
+      print('Decrypting: $encryptedText');
+      final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
+      print('Decrypted: $decrypted');
+      return decrypted;
+    } catch (e) {
+      print("Decryption error: $e");
+      return "Decryption Failed"; // Message d'erreur en cas d'échec du déchiffrement
+    }
   }
 }
