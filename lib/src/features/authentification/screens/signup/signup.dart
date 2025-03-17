@@ -16,12 +16,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -75,21 +77,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Champ Full Name
-                      TextFormField(
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.8),
-                          hintText: "Full Name",
-                          prefixIcon: const Icon(Icons.person, color: Colors.grey),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 15),
-
                       // Champ Email avec validation
                       TextFormField(
                         controller: _emailController,
@@ -115,31 +102,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 15),
 
-                      // Champ Phone Number avec validation
-                      TextFormField(
-                        controller: _phoneController,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.8),
-                          hintText: "Phone Number",
-                          prefixIcon: const Icon(Icons.phone, color: Colors.grey),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Phone number cannot be empty';
-                          } else if (!RegExp(r'^\+?[0-9]{10,15}$').hasMatch(value)) {
-                            return 'Enter a valid phone number';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 15),
-
                       // Champ Password
                       TextFormField(
                         controller: _passwordController,
@@ -157,8 +119,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 15),
 
-                      // Champ Confirm Password
+                      // Champ Confirm Password avec validation
                       TextFormField(
+                        controller: _confirmPasswordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           filled: true,
@@ -169,6 +132,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Confirm password cannot be empty';
+                          } else if (value != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
                       ),
 
                       const SizedBox(height: 20),
@@ -177,11 +148,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
-                            await AuthService().signup(
+                            bool success = await AuthService().signup(
                               email: _emailController.text,
                               password: _passwordController.text,
-                              context: context, // Ajout du contexte
+                              context: context,
                             );
+                            if (success) {
+                              Navigator.pushReplacementNamed(context, '/welcome');
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -203,7 +177,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           const Text("Already have an account?", style: TextStyle(color: Colors.white)),
                           TextButton(
                             onPressed: () {
-                              Navigator.pushNamed(context, '/login'); // Utilisation du nom de la route
+                              Navigator.pushNamed(context, '/login');
                             },
                             child: const Text("Sign In", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                           ),
