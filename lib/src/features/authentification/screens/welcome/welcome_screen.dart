@@ -1,12 +1,12 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:untitled123/services/database_service.dart';
+import 'package:untitled123/services/auth_service.dart';
 import 'package:untitled123/src/features/authentification/screens/login_screen.dart';
-import '../../../../../services/auth_service.dart';
 import '../../../../constants/image_strings.dart';
-import '../chiffrement/aes.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -17,19 +17,36 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
-  late AESHelper aesHelper;
 
   String humidity = "Loading...";
   String temperature = "Loading...";
   bool isLoading = true;
 
+  // 📌 Clé de chiffrement AES (16 octets pour AES-128)
+  final List<int> aesKey = [
+    0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF,
+    0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF
+  ];
+
+  // 📌 IV (Vecteur d'Initialisation) - 16 octets
+  final List<int> aesIv = [
+    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
+    0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00
+  ];
+
+  late encrypt.Encrypter encrypter;
+  late encrypt.IV iv;
+
   @override
   void initState() {
     super.initState();
-    // 🔐 Clé et IV en Base64 (assurez-vous que c'est la même que sur ESP8266)
-    const keyBase64 = "EjRWeJCrze8SNFZ4kKvN7w=="; // Clé en Base64
-    const ivBase64 = "ESIzRFV2iKo79hM="; // IV en Base64
-    aesHelper = AESHelper(keyBase64, ivBase64);
+
+    // Initialisation du chiffrement AES avec la clé et IV en octets
+    final key = encrypt.Key(Uint8List.fromList(aesKey));
+    iv = encrypt.IV(Uint8List.fromList(aesIv));
+
+    encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+
     _fetchSensorData();
   }
 
@@ -43,10 +60,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
         setState(() {
           humidity = encryptedHumidity.isNotEmpty
-              ? aesHelper.decryptAES(encryptedHumidity)
+              ? decryptAES(encryptedHumidity)
               : "No Data";
           temperature = encryptedTemperature.isNotEmpty
-              ? aesHelper.decryptAES(encryptedTemperature)
+              ? decryptAES(encryptedTemperature)
               : "No Data";
           isLoading = false;
         });
@@ -58,6 +75,17 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         });
       }
     });
+  }
+
+  // 📌 Déchiffrement AES
+  String decryptAES(String encryptedText) {
+    try {
+      final encryptedBytes = base64.decode(encryptedText);
+      final decrypted = encrypter.decryptBytes(encrypt.Encrypted(encryptedBytes), iv: iv);
+      return utf8.decode(decrypted);
+    } catch (e) {
+      return "Decryption Error";
+    }
   }
 
   @override
