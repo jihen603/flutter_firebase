@@ -20,6 +20,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   String humidity = "Loading...";
   String temperature = "Loading...";
+  bool isLoading = true;  // Variable pour gérer l'affichage de l'indicateur de chargement
 
   @override
   void initState() {
@@ -27,36 +28,42 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _fetchSensorData();
   }
 
+  // Fonction pour récupérer les données
   void _fetchSensorData() {
-    _database.child("DHT/humidity").onValue.listen((event) {
-      final encryptedHumidity = event.snapshot.value?.toString() ?? '';
-      print('Encrypted Humidity: $encryptedHumidity'); // Débogage
-      if (encryptedHumidity.isNotEmpty) {
-        try {
-          setState(() {
-            humidity = AESHelper.decryptAES(encryptedHumidity);
-          });
-        } catch (e) {
-          print('Decryption error for humidity: $e');
-        }
-      } else {
-        print('Humidity data is empty or null');
-      }
-    });
+    _database.child("DHT").onValue.listen((event) {
+      final data = event.snapshot.value as Map?;
+      if (data != null) {
+        final encryptedHumidity = data['humidity'] as String? ?? '';
+        final encryptedTemperature = data['temperature'] as String? ?? '';
 
-    _database.child("DHT/temperature").onValue.listen((event) {
-      final encryptedTemperature = event.snapshot.value?.toString() ?? '';
-      print('Encrypted Temperature: $encryptedTemperature'); // Débogage
-      if (encryptedTemperature.isNotEmpty) {
-        try {
+        if (encryptedHumidity.isNotEmpty && encryptedTemperature.isNotEmpty) {
+          try {
+            setState(() {
+              humidity = AESHelper.decryptAES(encryptedHumidity);
+              temperature = AESHelper.decryptAES(encryptedTemperature);
+              isLoading = false;  // Lorsque les données sont décryptées, on arrête le chargement
+            });
+          } catch (e) {
+            print('Decryption error: $e');
+            setState(() {
+              humidity = 'Decryption Error';
+              temperature = 'Decryption Error';
+              isLoading = false;
+            });
+          }
+        } else {
           setState(() {
-            temperature = AESHelper.decryptAES(encryptedTemperature);
+            humidity = 'Data Missing';
+            temperature = 'Data Missing';
+            isLoading = false;
           });
-        } catch (e) {
-          print('Decryption error for temperature: $e');
         }
       } else {
-        print('Temperature data is empty or null');
+        setState(() {
+          humidity = 'No Data';
+          temperature = 'No Data';
+          isLoading = false;
+        });
       }
     });
   }
@@ -82,6 +89,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
           ),
+
           // Contenu au centre de l'écran
           Center(
             child: Column(
@@ -99,7 +107,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
                 // Bouton pour démarrer
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    // Action pour démarrer, par exemple, navigation vers un autre écran
+                  },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                     backgroundColor: Colors.white,
@@ -116,6 +126,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     await AuthService().signout(context: context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
@@ -129,41 +140,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
                 const SizedBox(height: 20),
 
-                // Affichage des données récupérées en temps réel
-                StreamBuilder(
-                  stream: _databaseService.getRealTimeData('MQ5/value'),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
-                    }
-                    if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
-                    }
-                    if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                      final data = snapshot.data!.snapshot.value;
-                      return Text(
-                        'MQ5 Value: $data',
-                        style: const TextStyle(color: Colors.white, fontSize: 18),
-                      );
-                    }
-                    return const Text(
-                      'No data available',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                // 🔹 Affichage des données DHT (Température & Humidité)
-                Text(
-                  "Température: $temperature °C",
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Humidité: $humidity %",
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                // Affichage de l'indicateur de chargement si nécessaire
+                isLoading
+                    ? const CircularProgressIndicator()
+                    : Column(
+                  children: [
+                    // Affichage des données DHT (Température & Humidité)
+                    Text(
+                      "Température: $temperature °C",
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Humidité: $humidity %",
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                  ],
                 ),
               ],
             ),
