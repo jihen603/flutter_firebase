@@ -22,13 +22,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   String temperature = "Loading...";
   bool isLoading = true;
 
-  // 📌 Clé de chiffrement AES (16 octets pour AES-128)
+  // Clé de chiffrement AES (16 octets pour AES-128)
   final List<int> aesKey = [
     0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF,
     0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF
   ];
 
-  // 📌 IV (Vecteur d'Initialisation) - 16 octets
+  // IV (Vecteur d'Initialisation) - 16 octets
   final List<int> aesIv = [
     0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
     0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00
@@ -41,50 +41,50 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   void initState() {
     super.initState();
 
-    // Initialisation du chiffrement AES avec la clé et IV en octets
+    // Initialisation du chiffrement AES avec la clé et IV
     final key = encrypt.Key(Uint8List.fromList(aesKey));
     iv = encrypt.IV(Uint8List.fromList(aesIv));
+    encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: 'PKCS7'));
 
-    encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
-
-    _fetchSensorData();
+    _startRealTimeListener();
   }
 
-  // 🔍 Récupération et déchiffrement des données Firebase
-  void _fetchSensorData() {
+  // Démarre l'écoute en temps réel des données Firebase
+  void _startRealTimeListener() {
     _database.child("DHT").onValue.listen((event) {
-      final data = event.snapshot.value as Map?;
-      if (data != null) {
-        final encryptedHumidity = data['humidity'] as String? ?? '';
-        final encryptedTemperature = data['temperature'] as String? ?? '';
+      final data = event.snapshot.value as Map? ?? {};
+      final encryptedHumidity = data['humidity'] as String? ?? '';
+      final encryptedTemperature = data['temperature'] as String? ?? '';
 
-        setState(() {
-          humidity = encryptedHumidity.isNotEmpty
-              ? decryptAES(encryptedHumidity)
-              : "No Data";
-          temperature = encryptedTemperature.isNotEmpty
-              ? decryptAES(encryptedTemperature)
-              : "No Data";
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          humidity = 'No Data';
-          temperature = 'No Data';
-          isLoading = false;
-        });
-      }
+      // Logs pour vérifier les valeurs chiffrées
+      print(" Données chiffrées Firebase (Humidité) : $encryptedHumidity");
+      print(" Données chiffrées Firebase (Température) : $encryptedTemperature");
+
+      // Test du déchiffrement
+      String decryptedHumidity = decryptAES(encryptedHumidity);
+      String decryptedTemperature = decryptAES(encryptedTemperature);
+
+      print(" Test déchiffrement Flutter (Humidité) : $decryptedHumidity");
+      print(" Test déchiffrement Flutter (Température) : $decryptedTemperature");
+
+      setState(() {
+        humidity = encryptedHumidity.isNotEmpty ? decryptedHumidity : "No Data";
+        temperature = encryptedTemperature.isNotEmpty ? decryptedTemperature : "No Data";
+        isLoading = false;
+      });
     });
   }
 
-  // 📌 Déchiffrement AES
+  // Fonction de déchiffrement AES avec padding PKCS7
   String decryptAES(String encryptedText) {
     try {
-      final encryptedBytes = base64.decode(encryptedText);
-      final decrypted = encrypter.decryptBytes(encrypt.Encrypted(encryptedBytes), iv: iv);
-      return utf8.decode(decrypted);
+      final encryptedBytes = base64.decode(encryptedText); // Décodage Base64
+      final decrypted = encrypter.decryptBytes(
+          encrypt.Encrypted(encryptedBytes), iv: iv); // Déchiffrement
+      return utf8.decode(decrypted); // Retourner la valeur déchiffrée
     } catch (e) {
-      return "Decryption Error";
+      print("Erreur de déchiffrement : $e");
+      return "Decryption Error"; // Message d'erreur en cas d'échec
     }
   }
 
@@ -150,5 +150,3 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 }
-
-
