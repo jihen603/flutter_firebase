@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:untitled123/services/auth_service.dart';
 import 'package:untitled123/src/constants/image_strings.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpScreen extends StatefulWidget {
-  static const String routeName = '/signup'; // Définition du nom de la route
+  static const String routeName = '/signup';
 
   const SignUpScreen({Key? key}) : super(key: key);
 
@@ -19,6 +20,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  // Nouvelle variable pour le rôle
+  String _role = 'Operator'; // Valeur par défaut "Operator"
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -28,19 +32,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  // Fonction pour ajouter un utilisateur dans Firestore avec le rôle
+  Future<void> createUser(String email, String role) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    await _firestore.collection('users').doc(email).set({
+      'email': email,
+      'role': role, // "Administrator" ou "Operator"
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Image de fond
           Image.asset(
             tSplashTopImage,
             fit: BoxFit.cover,
           ),
-
-          // Effet de flou
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -49,8 +59,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             ),
           ),
-
-          // Contenu principal
           Center(
             child: SingleChildScrollView(
               child: Padding(
@@ -77,7 +85,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Champ Email avec validation
                       TextFormField(
                         controller: _emailController,
                         decoration: InputDecoration(
@@ -102,7 +109,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 15),
 
-                      // Champ Password
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
@@ -119,7 +125,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 15),
 
-                      // Champ Confirm Password avec validation
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: true,
@@ -144,7 +149,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Bouton Sign Up
+                      // Dropdown pour sélectionner le rôle
+                      DropdownButtonFormField<String>(
+                        value: _role,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.8),
+                          hintText: "Select Role",
+                          prefixIcon: const Icon(Icons.group, color: Colors.grey),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        items: ['Operator', 'Administrator'].map((String role) {
+                          return DropdownMenuItem<String>(
+                            value: role,
+                            child: Text(role),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _role = newValue!;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
@@ -154,6 +185,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               context: context,
                             );
                             if (success) {
+                              // Ajouter l'utilisateur dans Firestore avec le rôle
+                              await createUser(_emailController.text, _role);
+
                               Navigator.pushReplacementNamed(context, '/welcome');
                             }
                           }
@@ -170,7 +204,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Lien "Already have an account? Sign In"
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

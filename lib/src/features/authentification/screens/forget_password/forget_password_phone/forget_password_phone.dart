@@ -4,6 +4,8 @@ import 'package:untitled123/src/constants/image_strings.dart';
 import 'package:untitled123/src/constants/sizes.dart';
 import 'package:untitled123/src/constants/text_strings.dart';
 import 'package:untitled123/src/features/authentification/form_header_widget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ForgetPasswordPhoneScreen extends StatelessWidget {
   const ForgetPasswordPhoneScreen({Key? key}) : super(key: key);
@@ -13,17 +15,44 @@ class ForgetPasswordPhoneScreen extends StatelessWidget {
     final TextEditingController phoneController = TextEditingController();
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+    final FirebaseAuth _auth = FirebaseAuth.instance;
+
+    // Fonction pour envoyer le code OTP via Firebase
+    void _sendOTP() async {
+      final phoneNumber = phoneController.text.trim();
+      if (phoneNumber.isEmpty) {
+        Fluttertoast.showToast(msg: "Please enter a phone number");
+        return;
+      }
+
+      // Demander un code OTP via Firebase
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Si la vérification est automatique (par exemple sur Android avec SIM)
+          await _auth.signInWithCredential(credential);
+          Navigator.pushReplacementNamed(context, '/welcomeScreen');
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          Fluttertoast.showToast(msg: e.message ?? "Verification failed");
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          // Si un code OTP a été envoyé, naviguer vers l'écran OTP
+          Navigator.pushNamed(context, '/otpScreen', arguments: verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
-          // Image de fond
           Positioned.fill(
             child: Image.asset(
               'assets/images/backgroundd.jpg',
               fit: BoxFit.cover,
             ),
           ),
-          // Effet de flou
           Positioned.fill(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -67,7 +96,7 @@ class ForgetPasswordPhoneScreen extends StatelessWidget {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Phone number cannot be empty';
-                      } else if (!RegExp(r'^\+?[0-9]{10,15}\$').hasMatch(value)) {
+                      } else if (!RegExp(r'^\+?[0-9]{8,15}$').hasMatch(value)) {
                         return 'Enter a valid phone number';
                       }
                       return null;
@@ -80,7 +109,8 @@ class ForgetPasswordPhoneScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        // Ajouter la logique ici
+                        // Appeler la fonction pour envoyer l'OTP
+                        _sendOTP();
                       }
                     },
                     style: ElevatedButton.styleFrom(

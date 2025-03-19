@@ -8,6 +8,33 @@ import 'package:untitled123/services/auth_service.dart';
 import 'package:untitled123/src/features/authentification/screens/login_screen.dart';
 import '../../../../constants/image_strings.dart';
 
+class AESHelper {
+  static final key = encrypt.Key.fromUtf8('1234567890123456');
+  static final iv = encrypt.IV.fromUtf8('1234567890123456');
+
+  static final encrypter = encrypt.Encrypter(
+    encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: 'PKCS7'),
+  );
+
+  static String decryptAES(String encryptedText) {
+    try {
+      final encryptedBytes = base64.decode(normalizeBase64(encryptedText));
+      final decrypted = encrypter.decryptBytes(encrypt.Encrypted(encryptedBytes), iv: iv);
+      return utf8.decode(decrypted).trim();
+    } catch (e) {
+      print("Erreur de déchiffrement : $e");
+      return "Decryption Error";
+    }
+  }
+
+  static String normalizeBase64(String base64String) {
+    while (base64String.length % 4 != 0) {
+      base64String += "=";
+    }
+    return base64String;
+  }
+}
+
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -17,75 +44,33 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
-
   String humidity = "Loading...";
   String temperature = "Loading...";
   bool isLoading = true;
 
-  // Clé de chiffrement AES (16 octets pour AES-128)
-  final List<int> aesKey = [
-    0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF,
-    0x12, 0x34, 0x56, 0x78, 0x90, 0xAB, 0xCD, 0xEF
-  ];
-
-  // IV (Vecteur d'Initialisation) - 16 octets
-  final List<int> aesIv = [
-    0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
-    0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00
-  ];
-
-  late encrypt.Encrypter encrypter;
-  late encrypt.IV iv;
-
   @override
   void initState() {
     super.initState();
-
-    // Initialisation du chiffrement AES avec la clé et IV
-    final key = encrypt.Key(Uint8List.fromList(aesKey));
-    iv = encrypt.IV(Uint8List.fromList(aesIv));
-    encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc, padding: 'PKCS7'));
-
     _startRealTimeListener();
   }
 
-  // Démarre l'écoute en temps réel des données Firebase
   void _startRealTimeListener() {
     _database.child("DHT").onValue.listen((event) {
-      final data = event.snapshot.value as Map? ?? {};
-      final encryptedHumidity = data['humidity'] as String? ?? '';
-      final encryptedTemperature = data['temperature'] as String? ?? '';
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        final encryptedHumidity = data['humidity']?.toString() ?? '';
+        final encryptedTemperature = data['temperature']?.toString() ?? '';
 
-      // Logs pour vérifier les valeurs chiffrées
-      print(" Données chiffrées Firebase (Humidité) : $encryptedHumidity");
-      print(" Données chiffrées Firebase (Température) : $encryptedTemperature");
+        print("Données chiffrées Firebase (Humidité) : $encryptedHumidity");
+        print("Données chiffrées Firebase (Température) : $encryptedTemperature");
 
-      // Test du déchiffrement
-      String decryptedHumidity = decryptAES(encryptedHumidity);
-      String decryptedTemperature = decryptAES(encryptedTemperature);
-
-      print(" Test déchiffrement Flutter (Humidité) : $decryptedHumidity");
-      print(" Test déchiffrement Flutter (Température) : $decryptedTemperature");
-
-      setState(() {
-        humidity = encryptedHumidity.isNotEmpty ? decryptedHumidity : "No Data";
-        temperature = encryptedTemperature.isNotEmpty ? decryptedTemperature : "No Data";
-        isLoading = false;
-      });
+        setState(() {
+          humidity = encryptedHumidity.isNotEmpty ? AESHelper.decryptAES(encryptedHumidity) : "No Data";
+          temperature = encryptedTemperature.isNotEmpty ? AESHelper.decryptAES(encryptedTemperature) : "No Data";
+          isLoading = false;
+        });
+      }
     });
-  }
-
-  // Fonction de déchiffrement AES avec padding PKCS7
-  String decryptAES(String encryptedText) {
-    try {
-      final encryptedBytes = base64.decode(encryptedText); // Décodage Base64
-      final decrypted = encrypter.decryptBytes(
-          encrypt.Encrypted(encryptedBytes), iv: iv); // Déchiffrement
-      return utf8.decode(decrypted); // Retourner la valeur déchiffrée
-    } catch (e) {
-      print("Erreur de déchiffrement : $e");
-      return "Decryption Error"; // Message d'erreur en cas d'échec
-    }
   }
 
   @override
@@ -122,7 +107,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ElevatedButton(
                   onPressed: () async {
                     await AuthService().signout(context: context);
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LoginScreen(role: 'operator'),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
@@ -135,11 +125,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ? const CircularProgressIndicator()
                     : Column(
                   children: [
-                    Text("Température: $temperature °C",
-                        style: const TextStyle(color: Colors.white, fontSize: 18)),
+                    Text("Température: $temperature °C", style: const TextStyle(color: Colors.white, fontSize: 18)),
                     const SizedBox(height: 10),
-                    Text("Humidité: $humidity %",
-                        style: const TextStyle(color: Colors.white, fontSize: 18)),
+                    Text("Humidité: $humidity %", style: const TextStyle(color: Colors.white, fontSize: 18)),
                   ],
                 ),
               ],

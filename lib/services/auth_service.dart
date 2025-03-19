@@ -74,9 +74,11 @@ class AuthService {
   Future<bool> login({
     required String email,
     required String password,
+    required String role, // Ajout du paramètre role ici
     required BuildContext context,
   }) async {
     try {
+      // Connexion à Firebase
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -92,11 +94,26 @@ class AuthService {
         fontSize: 14.0,
       );
 
-      // Redirection vers WelcomeScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => WelcomeScreen()),
-      );
+      // Redirection selon le rôle de l'utilisateur
+      if (role == 'Administrator') {
+        // Rediriger vers une page spécifique pour les administrateurs
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => WelcomeScreen()),
+        );
+      } else if (role == 'Operator') {
+        // Rediriger vers une autre page pour les opérateurs (si nécessaire)
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => WelcomeScreen()), // Remplacez par une page spécifique si nécessaire
+        );
+      } else {
+        // Redirection par défaut si le rôle n'est pas défini
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => WelcomeScreen()),
+        );
+      }
 
       return true; // Succès
     } on FirebaseAuthException catch (e) {
@@ -141,7 +158,7 @@ class AuthService {
     // Redirection vers LoginScreen
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
+      MaterialPageRoute(builder: (context) => LoginScreen(role: '')), // Passez un rôle vide ici, car l'utilisateur se déconnecte
     );
   }
 }

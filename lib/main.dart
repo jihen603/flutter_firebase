@@ -1,6 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled123/firebase_options.dart';
+import 'package:untitled123/src/features/authentification/screens/AdminDashboard.dart';
+import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_otp/otp_screen.dart';
 import 'package:untitled123/src/features/authentification/screens/login_screen.dart';
 import 'package:untitled123/src/features/authentification/screens/signup/signup.dart';
 import 'package:untitled123/src/features/authentification/screens/splash_screen/splash_screen.dart';
@@ -10,7 +12,7 @@ import 'package:untitled123/src/utils/theme/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform
+      options: DefaultFirebaseOptions.currentPlatform
   );
 
   runApp(const MyApp());
@@ -30,9 +32,12 @@ class MyApp extends StatelessWidget {
       initialRoute: '/splash', // Définit l'écran de démarrage
       routes: {
         '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const SignUpScreen(), // Utilisation du nom de la route
-        '/welcome':(context) => const WelcomeScreen(),
+        // Passage du paramètre 'role' lors de la navigation
+        '/login': (context) => const LoginScreen(role: 'operator'),  // Passer un rôle par défaut
+        '/signup': (context) => const SignUpScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
+        '/otpScreen': (context) => OTPScreen(),
+        '/adminDashboard': (context) => const AdminDashboard(),
       },
     );
   }
