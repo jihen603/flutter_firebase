@@ -19,9 +19,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController(); // Full Name Controller
 
-  // Nouvelle variable pour le rôle
-  String _role = 'Operator'; // Valeur par défaut "Operator"
+  // New variable for the role
+  String _role = 'Operator'; // Default value "Operator"
+  bool _obscurePassword = true;  // To toggle the visibility of the password
+
+  String? _errorMessage; // To store error message
+  String? _successMessage; // To store success message
 
   @override
   void dispose() {
@@ -29,15 +34,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _phoneController.dispose();
+    _fullNameController.dispose();
     super.dispose();
   }
 
-  // Fonction pour ajouter un utilisateur dans Firestore avec le rôle
+  // Function to add a user to Firestore with the role
   Future<void> createUser(String email, String role) async {
     final FirebaseFirestore _firestore = FirebaseFirestore.instance;
     await _firestore.collection('users').doc(email).set({
       'email': email,
-      'role': role, // "Administrator" ou "Operator"
+      'role': role, // "Administrator" or "Operator"
     });
   }
 
@@ -85,6 +91,55 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 20),
 
+                      // Full Name Field
+                      TextFormField(
+                        controller: _fullNameController,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.8),
+                          hintText: "Full Name",
+                          prefixIcon: const Icon(Icons.person, color: Colors.grey),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Full Name cannot be empty';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      // Phone Number Field
+                      TextFormField(
+                        controller: _phoneController,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.8),
+                          hintText: "Phone Number",
+                          prefixIcon: const Icon(Icons.phone, color: Colors.grey),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        keyboardType: TextInputType.phone,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Phone Number cannot be empty';
+                          }
+                          if (!RegExp(r'^\+?[1-9]\d{1,14}$').hasMatch(value)) {
+                            return 'Enter a valid phone number';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      // Email Field
                       TextFormField(
                         controller: _emailController,
                         decoration: InputDecoration(
@@ -109,14 +164,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 15),
 
+                      // Password Field
                       TextFormField(
                         controller: _passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.8),
                           hintText: "Password",
                           prefixIcon: const Icon(Icons.lock, color: Colors.grey),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -125,6 +192,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 15),
 
+                      // Confirm Password Field
                       TextFormField(
                         controller: _confirmPasswordController,
                         obscureText: true,
@@ -149,7 +217,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 20),
 
-                      // Dropdown pour sélectionner le rôle
+                      // Role Dropdown
                       DropdownButtonFormField<String>(
                         value: _role,
                         decoration: InputDecoration(
@@ -176,6 +244,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 20),
 
+                      // Sign Up Button
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
@@ -185,10 +254,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               context: context,
                             );
                             if (success) {
-                              // Ajouter l'utilisateur dans Firestore avec le rôle
+                              // Add the user to Firestore with the role
                               await createUser(_emailController.text, _role);
 
-                              Navigator.pushReplacementNamed(context, '/welcome');
+                              setState(() {
+                                _successMessage = "Your account has been created successfully!";
+                                _errorMessage = null; // Reset error message
+                              });
+
+                              Navigator.pushReplacementNamed(context, '/login');
+                            } else {
+                              setState(() {
+                                _errorMessage = "This email is already used.";
+                                _successMessage = null; // Reset success message
+                              });
                             }
                           }
                         },
@@ -204,6 +283,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                       const SizedBox(height: 20),
 
+                      // Success or Error Message
+                      if (_successMessage != null)
+                        Text(
+                          _successMessage!,
+                          style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                        ),
+                      if (_errorMessage != null)
+                        Text(
+                          _errorMessage!,
+                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        ),
+
+                      const SizedBox(height: 20),
+
+                      // Sign In Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

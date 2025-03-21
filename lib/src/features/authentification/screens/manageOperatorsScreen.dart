@@ -25,10 +25,9 @@ class _ManageOperatorsScreenState extends State<ManageOperatorsScreen> {
         await FirebaseFirestore.instance.collection('operators').add({
           'name': operatorName,
           'createdAt': FieldValue.serverTimestamp(),
+          'lastSignIn': null,
         });
-        setState(() {
-          _newOperatorController.clear();
-        });
+        _newOperatorController.clear();
       } catch (e) {
         print("Erreur lors de l'ajout de l'opérateur: $e");
       }
@@ -38,13 +37,7 @@ class _ManageOperatorsScreenState extends State<ManageOperatorsScreen> {
   // Supprimer un opérateur
   void _removeOperator(String operatorId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('operators')
-          .doc(operatorId)
-          .delete();
-      setState(() {
-        // Rafraîchir la liste des opérateurs après suppression
-      });
+      await FirebaseFirestore.instance.collection('operators').doc(operatorId).delete();
     } catch (e) {
       print("Erreur lors de la suppression de l'opérateur: $e");
     }
@@ -67,8 +60,6 @@ class _ManageOperatorsScreenState extends State<ManageOperatorsScreen> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
-            // Formulaire pour ajouter un nouvel opérateur
             TextField(
               controller: _newOperatorController,
               decoration: const InputDecoration(
@@ -80,13 +71,9 @@ class _ManageOperatorsScreenState extends State<ManageOperatorsScreen> {
             ElevatedButton(
               onPressed: _addOperator,
               child: const Text('Add Operator'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
             ),
             const SizedBox(height: 20),
-
-            // Liste des opérateurs depuis Firestore
             const Text(
               'Existing Operators',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -99,7 +86,6 @@ class _ManageOperatorsScreenState extends State<ManageOperatorsScreen> {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
                   final operators = snapshot.data!.docs;
                   return ListView.builder(
                     itemCount: operators.length,
@@ -107,12 +93,17 @@ class _ManageOperatorsScreenState extends State<ManageOperatorsScreen> {
                       final operator = operators[index];
                       final operatorId = operator.id;
                       final operatorName = operator['name'];
-
-                      return ListTile(
-                        title: Text(operatorName),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _removeOperator(operatorId),
+                      final lastSignIn = operator['lastSignIn'] != null
+                          ? (operator['lastSignIn'] as Timestamp).toDate().toString()
+                          : 'Never logged in';
+                      return Card(
+                        child: ListTile(
+                          title: Text(operatorName),
+                          subtitle: Text('Last Sign-In: $lastSignIn'),
+                          trailing: IconButton(
+                            icon: Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _removeOperator(operatorId),
+                          ),
                         ),
                       );
                     },

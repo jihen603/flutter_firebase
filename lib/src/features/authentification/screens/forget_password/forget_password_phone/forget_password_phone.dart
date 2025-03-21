@@ -20,27 +20,36 @@ class ForgetPasswordPhoneScreen extends StatelessWidget {
     // Fonction pour envoyer le code OTP via Firebase
     void _sendOTP() async {
       final phoneNumber = phoneController.text.trim();
+
       if (phoneNumber.isEmpty) {
         Fluttertoast.showToast(msg: "Please enter a phone number");
         return;
       }
 
+      print("Phone number entered: $phoneNumber"); // Log du numéro de téléphone entré
+
       // Demander un code OTP via Firebase
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
+          print("Verification completed automatically."); // Log de la vérification automatique
           // Si la vérification est automatique (par exemple sur Android avec SIM)
           await _auth.signInWithCredential(credential);
+          print("User signed in automatically"); // Log de la connexion automatique
           Navigator.pushReplacementNamed(context, '/welcomeScreen');
         },
         verificationFailed: (FirebaseAuthException e) {
+          print("Verification failed: ${e.message}"); // Log de l'échec de la vérification
           Fluttertoast.showToast(msg: e.message ?? "Verification failed");
         },
         codeSent: (String verificationId, int? resendToken) {
+          print("OTP sent. Verification ID: $verificationId"); // Log lorsque le code OTP est envoyé
           // Si un code OTP a été envoyé, naviguer vers l'écran OTP
           Navigator.pushNamed(context, '/otpScreen', arguments: verificationId);
         },
-        codeAutoRetrievalTimeout: (String verificationId) {},
+        codeAutoRetrievalTimeout: (String verificationId) {
+          print("Auto retrieval timeout. Verification ID: $verificationId"); // Log du timeout de récupération automatique
+        },
       );
     }
 
@@ -109,8 +118,11 @@ class ForgetPasswordPhoneScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
+                        print("Form is valid, proceeding to send OTP..."); // Log lorsque le formulaire est valide
                         // Appeler la fonction pour envoyer l'OTP
                         _sendOTP();
+                      } else {
+                        print("Form is invalid, please check the inputs."); // Log lorsque le formulaire est invalide
                       }
                     },
                     style: ElevatedButton.styleFrom(

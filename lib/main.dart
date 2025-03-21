@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
         // Passage du paramètre 'role' lors de la navigation
         '/login': (context) => const LoginScreen(role: 'operator'),  // Passer un rôle par défaut
         '/signup': (context) => const SignUpScreen(),
-        '/welcome': (context) => const WelcomeScreen(),
+        '/welcome': (context) => WelcomeScreen(),
         '/otpScreen': (context) => OTPScreen(),
         '/adminDashboard': (context) => const AdminDashboard(),
       },

@@ -1,11 +1,14 @@
-// lib/services/database_service.dart
 import 'package:firebase_database/firebase_database.dart';
 
-class DatabaseService {
-  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
+class FirebaseService {
+  final DatabaseReference dbRef = FirebaseDatabase.instance.ref("sensors");
 
-  // Méthode pour récupérer les données en temps réel
-  Stream<DatabaseEvent> getRealTimeData(String path) {
-    return _databaseRef.child(path).onValue;
+  void listenForEncryptedData(Function(String) onDataReceived) {
+    dbRef.onValue.listen((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null && data.containsKey("encrypted_data")) {
+        onDataReceived(data["encrypted_data"]);
+      }
+    });
   }
 }

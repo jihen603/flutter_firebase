@@ -1,5 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:untitled123/src/constants/image_strings.dart';
 import 'package:untitled123/src/features/authentification/screens/signup/signup.dart';
 import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_options/forget_password_model_bottom_sheet.dart';
@@ -9,7 +11,7 @@ import 'update_profile_screen.dart'; // Importation de la nouvelle page
 class LoginScreen extends StatefulWidget {
   final String role; // Déclaration du rôle
 
-  const LoginScreen({Key? key, required this.role}) : super(key: key);  // Constructeur avec rôle
+  const LoginScreen({Key? key, required this.role}) : super(key: key);
 
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -18,6 +20,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _rememberMe = false;
+  bool _obscurePassword = true;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -53,9 +56,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Afficher le rôle à l'écran
                       Text(
-                        "Welcome Back (${widget.role})",  // Affiche le rôle ici
+                        "Welcome Back (${widget.role})",
                         style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -67,14 +69,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
                       const SizedBox(height: 20),
-                      // Email et mot de passe
                       _buildEmailField(),
                       const SizedBox(height: 20),
                       _buildPasswordField(),
                       const SizedBox(height: 10),
                       _buildRememberMeAndForgotPassword(),
                       const SizedBox(height: 20),
-                      // Bouton de connexion
                       ElevatedButton(
                         onPressed: () async {
                           if (_formKey.currentState!.validate()) {
@@ -82,9 +82,20 @@ class _LoginScreenState extends State<LoginScreen> {
                               email: _emailController.text.trim(),
                               password: _passwordController.text.trim(),
                               context: context,
-                              role: widget.role,  // Passer le rôle lors de la connexion
+                              role: widget.role,
                             );
+
                             if (success) {
+                              // Mise à jour `lastSignIn` uniquement pour les opérateurs
+                              if (widget.role == 'Operator') {
+                                // Met à jour la date et l'heure de la dernière connexion de l'opérateur
+                                await FirebaseFirestore.instance
+                                    .collection('operators')
+                                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                                    .update({'lastSignIn': FieldValue.serverTimestamp()});
+                              }
+
+                              // Redirige l'utilisateur vers la page de bienvenue ou le tableau de bord
                               Navigator.pushReplacementNamed(context, '/welcome');
                             }
                           }
@@ -99,11 +110,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text("Sign In", style: TextStyle(color: Colors.black, fontSize: 18)),
                       ),
                       const SizedBox(height: 20),
-                      // Si l'utilisateur est un administrateur, ajouter un bouton pour accéder au tableau de bord
                       if (widget.role == 'Administrator') ...[
                         TextButton(
                           onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/adminDashboard');  // Redirige vers le tableau de bord admin
+                            Navigator.pushReplacementNamed(context, '/adminDashboard');
                           },
                           child: const Text(
                             "Go to Admin Dashboard",
@@ -112,7 +122,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      // Lien vers l'inscription
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -126,7 +135,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      // Lien vers la mise à jour du profil
                       TextButton(
                         onPressed: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => UpdateProfileScreen()));
@@ -147,7 +155,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Champ Email
   Widget _buildEmailField() {
     return TextFormField(
       controller: _emailController,
@@ -167,23 +174,32 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Champ Mot de Passe
   Widget _buildPasswordField() {
     return TextFormField(
       controller: _passwordController,
-      obscureText: true,
+      obscureText: _obscurePassword,
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white.withOpacity(0.8),
         hintText: "Password",
         prefixIcon: const Icon(Icons.lock, color: Colors.grey),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
       validator: (value) => value == null || value.isEmpty ? 'Password cannot be empty' : null,
     );
   }
 
-  // Case à cocher pour "Se souvenir de moi" et lien pour mot de passe oublié
   Widget _buildRememberMeAndForgotPassword() {
     return Row(
       children: [
@@ -203,3 +219,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
