@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:untitled123/firebase_options.dart';
 import 'package:untitled123/src/features/authentification/screens/AdminDashboard.dart';
 import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_otp/otp_screen.dart';
+import 'package:untitled123/src/features/authentification/screens/iot%20dashboard/sensordashboardscreen.dart';
 import 'package:untitled123/src/features/authentification/screens/login_screen.dart';
 import 'package:untitled123/src/features/authentification/screens/signup/signup.dart';
 import 'package:untitled123/src/features/authentification/screens/splash_screen/splash_screen.dart';
@@ -38,6 +39,8 @@ class MyApp extends StatelessWidget {
         '/welcome': (context) => WelcomeScreen(),
         '/otpScreen': (context) => OTPScreen(),
         '/adminDashboard': (context) => const AdminDashboard(),
+        '/sensor_dashboard': (context) => SensorDataPage(),
+
       },
     );
   }

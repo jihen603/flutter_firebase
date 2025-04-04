@@ -1,19 +1,17 @@
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'dart:convert';
-import 'package:encrypt/encrypt.dart';
 
 class EncryptionService {
-  static final key = Key.fromUtf8("0123456789abcdef");
-  static final iv = IV.fromUtf8("abcdef9876543210");
+  static final key = encrypt.Key.fromUtf8('0123456789abcdef');  // 16 octets (doit être identique à Python)
+  static final iv = encrypt.IV.fromUtf8('abcdef9876543210');   // 16 octets
 
-  static String decryptAES(String encryptedBase64) {
-    try {
-      final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
-      final encryptedBytes = base64.decode(encryptedBase64);
-      final decrypted = encrypter.decryptBytes(Encrypted(encryptedBytes), iv: iv);
-      return utf8.decode(decrypted);
-    } catch (e) {
-      print("Erreur de déchiffrement : $e");
-      return "Erreur";
-    }
+  static String decryptData(String encryptedData) {
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+
+    // Décoder les données base64 avant déchiffrement
+    final encrypted = encrypt.Encrypted.fromBase64(encryptedData);
+    final decrypted = encrypter.decrypt(encrypted, iv: iv);
+
+    return decrypted;
   }
 }

@@ -1,15 +1,18 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:untitled123/src/constants/image_strings.dart';
-import 'package:untitled123/src/features/authentification/screens/signup/signup.dart';
 import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_options/forget_password_model_bottom_sheet.dart';
+import 'package:untitled123/src/features/authentification/screens/signup/signup.dart';
+import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_mail/forget_password_mail.dart';
+import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_phone/forget_password_phone.dart';
+import 'package:untitled123/src/constants/image_strings.dart';
+import 'package:untitled123/src/features/authentification/screens/welcome/welcome_screen.dart';
+import 'package:untitled123/src/features/authentification/screens/iot%20dashboard/sensordashboardscreen.dart';
+import 'package:untitled123/src/features/authentification/screens/AdminDashboard.dart';
 import '../../../../services/auth_service.dart';
-import 'update_profile_screen.dart'; // Importation de la nouvelle page
+import 'update_profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final String role; // Déclaration du rôle
+  final String role;
 
   const LoginScreen({Key? key, required this.role}) : super(key: key);
 
@@ -73,7 +76,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       _buildPasswordField(),
                       const SizedBox(height: 10),
-                      _buildRememberMeAndForgotPassword(),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            onChanged: (value) => setState(() => _rememberMe = value!),
+                          ),
+                          const Text("Remember me", style: TextStyle(color: Colors.white)),
+                          Spacer(),
+                          TextButton(
+                            onPressed: () {
+                              // Appel de la méthode pour afficher la BottomSheet
+                              ForgetPasswordScreen.buildShowModalBottomSheet(context);
+                            },
+                            child: const Text(
+                              "Forgot Password?",
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () async {
@@ -84,19 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               context: context,
                               role: widget.role,
                             );
-
                             if (success) {
-                              // Mise à jour `lastSignIn` uniquement pour les opérateurs
-                              if (widget.role == 'Operator') {
-                                // Met à jour la date et l'heure de la dernière connexion de l'opérateur
-                                await FirebaseFirestore.instance
-                                    .collection('operators')
-                                    .doc(FirebaseAuth.instance.currentUser!.uid)
-                                    .update({'lastSignIn': FieldValue.serverTimestamp()});
-                              }
-
-                              // Redirige l'utilisateur vers la page de bienvenue ou le tableau de bord
-                              Navigator.pushReplacementNamed(context, '/welcome');
+                              _showDestinationDialog(); // Choix après connexion
                             }
                           }
                         },
@@ -111,39 +122,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       if (widget.role == 'Administrator') ...[
-                        TextButton(
+                        ElevatedButton(
                           onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/adminDashboard');
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => AdminDashboard()));
                           },
-                          child: const Text(
-                            "Go to Admin Dashboard",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orangeAccent,
+                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
+                          child: const Text("Admin Dashboard", style: TextStyle(color: Colors.white, fontSize: 18)),
                         ),
+                        const SizedBox(height: 20),
                       ],
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text("Don't have an account?", style: TextStyle(color: Colors.white)),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => const SignUpScreen()));
-                            },
-                            child: const Text("Sign Up", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => UpdateProfileScreen()));
-                        },
-                        child: const Text(
-                          "Update Profile",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -152,6 +143,32 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showDestinationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Choose Destination"),
+          content: Text("Where do you want to go?"),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Welcome"),
+              onPressed: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => WelcomeScreen()));
+              },
+            ),
+            TextButton(
+              child: Text("Sensor Dashboard"),
+              onPressed: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SensorDataPage()));
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -165,12 +182,6 @@ class _LoginScreenState extends State<LoginScreen> {
         prefixIcon: const Icon(Icons.email, color: Colors.grey),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      keyboardType: TextInputType.emailAddress,
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Email cannot be empty';
-        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Enter a valid email';
-        return null;
-      },
     );
   }
 
@@ -183,40 +194,8 @@ class _LoginScreenState extends State<LoginScreen> {
         fillColor: Colors.white.withOpacity(0.8),
         hintText: "Password",
         prefixIcon: const Icon(Icons.lock, color: Colors.grey),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-            color: Colors.grey,
-          ),
-          onPressed: () {
-            setState(() {
-              _obscurePassword = !_obscurePassword;
-            });
-          },
-        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      validator: (value) => value == null || value.isEmpty ? 'Password cannot be empty' : null,
-    );
-  }
-
-  Widget _buildRememberMeAndForgotPassword() {
-    return Row(
-      children: [
-        Checkbox(
-          value: _rememberMe,
-          onChanged: (value) => setState(() => _rememberMe = value!),
-        ),
-        const Text("Remember me", style: TextStyle(color: Colors.white)),
-        const Spacer(),
-        TextButton(
-          onPressed: () {
-            ForgetPasswordScreen.buildShowModalBottomSheet(context);
-          },
-          child: const Text("Forgot Password?", style: TextStyle(color: Colors.white)),
-        ),
-      ],
     );
   }
 }
-

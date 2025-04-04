@@ -45,7 +45,13 @@ dependencies:
   encrypt: ^5.0.3
   convert: ^3.1.2
   cloud_firestore: ^5.6.5
-  http:
+  fl_chart: ^0.70.2
+  provider: ^6.1.2
+  flutter_tts: ^4.2.2
+  speech_to_text: ^7.0.0
+  pointycastle: ^3.9.1
+  slugid: ^1.1.2
+
 
 dev_dependencies:
   flutter_test:

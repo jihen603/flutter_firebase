@@ -33,23 +33,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     }
   }
 
-  Future<void> _updateEmail() async {
+  Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
     if (!await _reauthenticateUser()) return;
-    try {
-      await _auth.currentUser?.verifyBeforeUpdateEmail(_newEmailController.text);
-      _showSnackbar("A confirmation email has been sent!");
-    } catch (e) {
-      _showSnackbar("Error: ${e.toString()}");
-    }
-  }
 
-  Future<void> _updatePassword() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (!await _reauthenticateUser()) return;
     try {
-      await _auth.currentUser?.updatePassword(_newPasswordController.text);
-      _showSnackbar("Password updated successfully!");
+      if (_newEmailController.text.isNotEmpty) {
+        await _auth.currentUser?.verifyBeforeUpdateEmail(_newEmailController.text);
+        _showSnackbar("A confirmation email has been sent!");
+      }
+      if (_newPasswordController.text.isNotEmpty) {
+        await _auth.currentUser?.updatePassword(_newPasswordController.text);
+        _showSnackbar("Password updated successfully!");
+      }
     } catch (e) {
       _showSnackbar("Error: ${e.toString()}");
     }
@@ -103,9 +99,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                       _buildTextField("New Email", Icons.email_outlined, _newEmailController, false),
                       _buildTextField("New Password", Icons.lock_outline, _newPasswordController, true),
                       const SizedBox(height: 20),
-                      _buildButton("Update Email", _updateEmail),
-                      const SizedBox(height: 12),
-                      _buildButton("Update Password", _updatePassword),
+                      _buildUpdateButton(),
                       const SizedBox(height: 20),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
@@ -150,20 +144,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  Widget _buildButton(String text, VoidCallback onPressed) {
+  Widget _buildUpdateButton() {
     return ElevatedButton(
-      onPressed: onPressed,
+      onPressed: _updateProfile,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent, // Make the background transparent
-        side: BorderSide(color: Colors.blueAccent), // Border color
+        backgroundColor: Colors.yellow.shade700, // Bouton en jaune
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 0, // Remove shadow to make it flat
+        elevation: 4, // Légère ombre pour un effet stylé
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.blueAccent, // Text color
+      child: const Text(
+        "Update",
+        style: TextStyle(
+          color: Colors.black, // Texte en noir pour un bon contraste
           fontSize: 18,
           fontWeight: FontWeight.bold,
         ),
