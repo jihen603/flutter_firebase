@@ -1,141 +1,77 @@
-import 'dart:async';
-
+import 'dart:convert';
+import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../../services/aes_helper.dart';
-import '../../../../../services/iot_data_firebase.dart';
-
 
 class SensorDashboard extends StatefulWidget {
   const SensorDashboard({Key? key}) : super(key: key);
 
   @override
-  _SensorDashboardState createState() => _SensorDashboardState();
+  State<SensorDashboard> createState() => _SensorDashboardState();
 }
 
 class _SensorDashboardState extends State<SensorDashboard> {
-  late StreamSubscription _dataSub;
-  final Map<String, dynamic> _sensorData = {
-    'temperature': 0.0,
-    'humidity': 0.0,
-    'gas': 0.0,
-    'soil_moisture': 0.0,
-    'vibration': false,
-  };
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
 
-  @override
-  void initState() {
-    super.initState();
-    _startListening();
-    AESHelper.testDecryption(); // Test au démarrage
-  }
+  // AES Key et IV doivent être identiques à ceux dans l'ESP8266
+  final key = encrypt.Key.fromUtf8("1234567890ABCDEF");
+  final iv = encrypt.IV.fromUtf8("ABCDEFGHIJKLMNOP");
 
-  void _startListening() {
-    final iotService = Provider.of<IotDataFirebase>(context, listen: false);
-    _dataSub = iotService.realTimeData.listen((data) {
-      if (mounted) {
-        setState(() => _sensorData.addAll(data));
-      }
-    });
+  String decryptAES(String base64Str) {
+    try {
+      final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+      final encryptedBytes = base64.decode(base64Str);
+      final decrypted = encrypter.decryptBytes(encrypt.Encrypted(encryptedBytes), iv: iv);
+      return utf8.decode(decrypted);
+    } catch (e) {
+      return "Erreur";
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard Capteurs IoT'),
-        centerTitle: true,
-      ),
-      body: _buildDashboard(),
-    );
-  }
+      appBar: AppBar(title: Text("📊 Sensor Dashboard")),
+      body: StreamBuilder(
+        stream: _dbRef.onValue,
+        builder: (context, snapshot) {
+          if (snapshot.hasData &&
+              snapshot.data is DatabaseEvent &&
+              (snapshot.data! as DatabaseEvent).snapshot.value != null) {
+            final data = (snapshot.data! as DatabaseEvent).snapshot.value as Map;
 
-  Widget _buildDashboard() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          _buildSensorCard(
-            icon: Icons.thermostat,
-            title: 'Température',
-            value: '${_sensorData['temperature'].toStringAsFixed(1)} °C',
-            color: _getTemperatureColor(_sensorData['temperature']),
-          ),
-          _buildSensorCard(
-            icon: Icons.water_drop,
-            title: 'Humidité Air',
-            value: '${_sensorData['humidity'].toStringAsFixed(1)} %',
-            color: _getHumidityColor(_sensorData['humidity']),
-          ),
-          _buildSensorCard(
-            icon: Icons.cloud,
-            title: 'Niveau de Gaz',
-            value: '${_sensorData['gas']} ppm',
-            color: Colors.orange,
-          ),
-          _buildSensorCard(
-            icon: Icons.grass,
-            title: 'Humidité Sol',
-            value: '${_sensorData['soil_moisture']}',
-            color: Colors.brown,
-          ),
-          _buildSensorCard(
-            icon: Icons.vibration,
-            title: 'Vibration',
-            value: _sensorData['vibration'] ? 'DÉTECTÉE' : 'Aucune',
-            color: _sensorData['vibration'] ? Colors.red : Colors.grey,
-          ),
-        ],
+            final hum = decryptAES(data['DHT']?['humidity'] ?? "");
+            final temp = decryptAES(data['DHT']?['temperature'] ?? "");
+            final gas = decryptAES(data['MQ5']?['gas'] ?? "");
+            final soil = decryptAES(data['MH-Sensor']?['soil_moisture'] ?? "");
+            final vib = decryptAES(data['SW420']?['vibration'] ?? "");
+
+            return ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                sensorCard("🌡️ Température", "$temp °C"),
+                sensorCard("💧 Humidité", "$hum %"),
+                sensorCard("🔥 Gaz", gas),
+                sensorCard("🌱 Humidité du sol", soil),
+                sensorCard("🪵 Vibration", vib == "1" ? "Détectée" : "Aucune"),
+              ],
+            );
+          } else {
+            return Center(child: CircularProgressIndicator());
+          }
+        },
       ),
     );
   }
 
-  Widget _buildSensorCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
+  Widget sensorCard(String title, String value) {
     return Card(
+      margin: EdgeInsets.symmetric(vertical: 8),
       elevation: 4,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 16)),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      child: ListTile(
+        title: Text(title),
+        trailing: Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
-  }
-
-  Color _getTemperatureColor(double temp) {
-    if (temp > 30) return Colors.red;
-    if (temp > 25) return Colors.orange;
-    return Colors.blue;
-  }
-
-  Color _getHumidityColor(double humidity) {
-    if (humidity > 70) return Colors.blue;
-    if (humidity < 30) return Colors.amber;
-    return Colors.green;
   }
 }
