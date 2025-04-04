@@ -4,18 +4,10 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 
 class AESHelper {
-  // 1. Clé et IV sous forme d'octets (plus fiable que UTF-8)
-  static final _key = encrypt.Key(Uint8List.fromList([
-    0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
-    0x39, 0x30, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46 // '1234567890ABCDEF' en hex
-  ]));
+  // Clé et IV identiques à l'Arduino (16 octets)
+  static final _key = encrypt.Key.fromUtf8('1234567890ABCDEF');
+  static final _iv = encrypt.IV.fromUtf8('ABCDEFGHIJKLMNOP');
 
-  static final _iv = encrypt.IV(Uint8List.fromList([
-    0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
-    0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50 // 'ABCDEFGHIJKLMNOP' en hex
-  ]));
-
-  // 2. Encrypter initialisé une seule fois
   static final _encrypter = encrypt.Encrypter(
     encrypt.AES(
       _key,
@@ -24,40 +16,59 @@ class AESHelper {
     ),
   );
 
-  /// 3. Décryptage avec logs détaillés
+  /// Décrypte les données Firebase avec gestion d'erreur améliorée
   static String decryptFirebaseData(String encryptedData) {
     try {
-      debugPrint('↩️ Donnée entrante: $encryptedData');
+      if (encryptedData.isEmpty) return '0.0';
 
-      // Nettoyage et padding Base64
-      final cleanedData = encryptedData
-          .trim()
-          .replaceAll(RegExp(r'[^a-zA-Z0-9+/=]'), ''); // Supprime les caractères spéciaux
+      // Nettoyage Base64
+      final cleaned = encryptedData
+          .replaceAll(RegExp(r'[^a-zA-Z0-9+/=]'), '')
+          .trim();
 
-      final paddedData = cleanedData.padRight(
-          cleanedData.length + (4 - cleanedData.length % 4) % 4,
+      // Padding Base64 si nécessaire
+      final padded = cleaned.padRight(
+          cleaned.length + (4 - cleaned.length % 4) % 4,
           '='
       );
 
-      debugPrint('🛠️ Après nettoyage: $paddedData');
-
       // Décodage et décryptage
-      final encryptedBytes = base64.decode(paddedData);
-      final result = _encrypter.decrypt(
-        encrypt.Encrypted(encryptedBytes),
-        iv: _iv,
-      );
+      final bytes = base64.decode(padded);
+      final decrypted = _encrypter.decryptBytes(encrypt.Encrypted(bytes), iv: _iv);
 
-      debugPrint('✅ Décryptage réussi: $result');
+      // Suppression du padding PKCS7
+      final padValue = decrypted.last;
+      final result = utf8.decode(decrypted.sublist(0, decrypted.length - padValue));
+
+      if (kDebugMode) {
+        print('Décryptage réussi [$encryptedData] -> $result');
+      }
+
       return result;
     } catch (e, stack) {
-      debugPrint('''
-⚠️ ERREUR CRITIQUE
+      if (kDebugMode) {
+        print('''
+⚠️ ERREUR de décryptage
 Donnée: $encryptedData
-Erreur: ${e.toString()}
-Stack: ${stack.toString()}
+Erreur: $e
+Stack: $stack
 ''');
-      return '0.0';
+      }
+      return '0.0'; // Valeur par défaut sécurisée
     }
+  }
+
+  /// Test de compatibilité Arduino-Flutter
+  static void testDecryption() {
+    const testValues = {
+      'U2FsdGVkX19D5x8g7Z7nTq1JZ5YwD3z7J9Kp2vW1X0=': '25.5', // Exemple de donnée chiffrée
+      'U2FsdGVkX1+3KZQ4n5qz9q0NTY5JZQ==': '1'               // Format vibration
+    };
+
+    testValues.forEach((encrypted, expected) {
+      final result = decryptFirebaseData(encrypted);
+      print('Test: $encrypted -> $result (attendu: $expected)');
+      assert(result == expected, 'Échec du test de décryptage');
+    });
   }
 }
