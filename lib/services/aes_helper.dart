@@ -4,7 +4,7 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/foundation.dart';
 
 class AESHelper {
-  // Clé et IV identiques à l'Arduino (16 octets)
+  // Configuration identique à Arduino
   static final _key = encrypt.Key.fromUtf8('1234567890ABCDEF');
   static final _iv = encrypt.IV.fromUtf8('ABCDEFGHIJKLMNOP');
 
@@ -12,16 +12,13 @@ class AESHelper {
     encrypt.AES(
       _key,
       mode: encrypt.AESMode.cbc,
-      padding: 'PKCS7',
+      padding: null, // Désactive le padding automatique
     ),
   );
 
-  /// Décrypte les données Firebase avec gestion d'erreur améliorée
   static String decryptFirebaseData(String encryptedData) {
     try {
-      if (encryptedData.isEmpty) return '0.0';
-
-      // Nettoyage Base64
+      // Nettoyage rigoureux
       final cleaned = encryptedData
           .replaceAll(RegExp(r'[^a-zA-Z0-9+/=]'), '')
           .trim();
@@ -32,43 +29,49 @@ class AESHelper {
           '='
       );
 
-      // Décodage et décryptage
+      // Décodage Base64
       final bytes = base64.decode(padded);
-      final decrypted = _encrypter.decryptBytes(encrypt.Encrypted(bytes), iv: _iv);
 
-      // Suppression du padding PKCS7
-      final padValue = decrypted.last;
-      final result = utf8.decode(decrypted.sublist(0, decrypted.length - padValue));
+      // Décryptage sans gestion automatique du padding
+      final decrypted = _encrypter.decryptBytes(
+        encrypt.Encrypted(bytes),
+        iv: _iv,
+      );
 
-      if (kDebugMode) {
-        print('Décryptage réussi [$encryptedData] -> $result');
+      // Gestion manuelle du padding PKCS7
+      final padLength = decrypted.last;
+      final validLength = decrypted.length - padLength;
+
+      if (padLength > 16 || padLength < 1 || validLength < 0) {
+        throw Exception('Padding invalide');
       }
 
+      // Conversion en String
+      final result = utf8.decode(decrypted.sublist(0, validLength));
+
+      debugPrint('Déchiffrage réussi: $result');
       return result;
     } catch (e, stack) {
-      if (kDebugMode) {
-        print('''
-⚠️ ERREUR de décryptage
+      debugPrint('''
+⚠️ ERREUR CRITIQUE
 Donnée: $encryptedData
-Erreur: $e
-Stack: $stack
+Erreur: ${e.toString()}
+Stack: ${stack.toString()}
 ''');
-      }
-      return '0.0'; // Valeur par défaut sécurisée
+      return '0.0';
     }
   }
 
-  /// Test de compatibilité Arduino-Flutter
+  // Test de compatibilité
   static void testDecryption() {
-    const testValues = {
-      'U2FsdGVkX19D5x8g7Z7nTq1JZ5YwD3z7J9Kp2vW1X0=': '25.5', // Exemple de donnée chiffrée
-      'U2FsdGVkX1+3KZQ4n5qz9q0NTY5JZQ==': '1'               // Format vibration
+    const testData = {
+      'U2FsdGVkX19D5x8g7Z7nTq1JZ5YwD3z7J9Kp2vW1X0=': '25.5',
+      'U2FsdGVkX1+3KZQ4n5qz9q0NTY5JZQ==': '1'
     };
 
-    testValues.forEach((encrypted, expected) {
+    testData.forEach((encrypted, expected) {
       final result = decryptFirebaseData(encrypted);
-      print('Test: $encrypted -> $result (attendu: $expected)');
-      assert(result == expected, 'Échec du test de décryptage');
+      assert(result == expected, 'Échec du test: $encrypted -> $result (attendu: $expected)');
     });
   }
 }
