@@ -1,46 +1,46 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/cupertino.dart';
 import 'aes_helper.dart';
 
 class IotDataFirebase {
-  final DatabaseReference _sensorsRef = FirebaseDatabase.instance.ref();
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
 
-  Stream<Map<String, dynamic>> get realTimeDecryptedData {
-    return _sensorsRef.onValue.map((event) {
+  Stream<Map<String, dynamic>> getRealTimeData({String? deviceType}) {
+    return _dbRef.child(deviceType ?? 'Arduino').onValue.map((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>;
-
-      // Debug: affiche les données brutes
-      debugPrint('Données brutes Firebase: ${data.toString()}');
-
       return {
-        'temperature': _parseData(data['DHT']['temperature']),
-        'humidity': _parseData(data['DHT']['humidity']),
-        'gas': _parseData(data['MQ5']['gas']),
-        'soil_moisture': _parseData(data['MH-Sensor']['soil_moisture']),
-        'vibration': _parseVibration(data['SW420']['vibration']),
+        'temperature': _parseValue(data['DHT']?['temperature']),
+        'humidity': _parseValue(data['DHT']?['humidity']),
+        'gas': _parseValue(data['MQ5']?['gas']),
+        'vibration': _parseBool(data['SW420']?['vibration']),
+        'soil_moisture': _parseValue(data['Soil']?['moisture']),
       };
     });
   }
 
-  double _parseData(dynamic encryptedValue) {
+  Future<bool> testConnection() async {
     try {
-      if (encryptedValue == null) return 0.0;
-      final decrypted = AESHelper.decryptFirebaseData(encryptedValue.toString());
-      return double.tryParse(decrypted) ?? 0.0;
+      final snapshot = await _dbRef.child('Arduino').once();
+      return snapshot.snapshot.exists;
     } catch (e) {
-      debugPrint('Erreur décryptage valeur: $e');
-      return 0.0;
+      return false;
     }
   }
 
-  bool _parseVibration(dynamic encryptedValue) {
-    try {
-      if (encryptedValue == null) return false;
-      final decrypted = AESHelper.decryptFirebaseData(encryptedValue.toString());
-      return decrypted == '1';
-    } catch (e) {
-      debugPrint('Erreur décryptage vibration: $e');
-      return false;
-    }
+  double _parseValue(dynamic encrypted, {String? customKey}) {
+    if (encrypted == null) return 0.0;
+    final decrypted = AESHelper.decryptIotData(
+      encrypted.toString(),
+      customKey: customKey,
+    );
+    return double.tryParse(decrypted) ?? 0.0;
+  }
+
+  bool _parseBool(dynamic encrypted, {String? customKey}) {
+    if (encrypted == null) return false;
+    final decrypted = AESHelper.decryptIotData(
+      encrypted.toString(),
+      customKey: customKey,
+    );
+    return decrypted == '1' || decrypted.toLowerCase() == 'true';
   }
 }

@@ -163,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
             TextButton(
               child: Text("Sensor Dashboard"),
               onPressed: () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SensorDataPage()));
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SensorPage()));
               },
             ),
           ],

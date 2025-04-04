@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
         '/welcome': (context) => WelcomeScreen(),
         '/otpScreen': (context) => OTPScreen(),
         '/adminDashboard': (context) => const AdminDashboard(),
-        '/sensor_dashboard': (context) => SensorDataPage(),
+        '/sensor_dashboard': (context) => SensorPage(),
       },
     );
   }
