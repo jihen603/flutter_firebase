@@ -1,8 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Ajoutez cette importation
 import 'package:untitled123/firebase_options.dart';
-import 'package:untitled123/services/iot_data_firebase.dart';
 import 'package:untitled123/src/features/authentification/screens/AdminDashboard.dart';
 import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_otp/otp_screen.dart';
 import 'package:untitled123/src/features/authentification/screens/iot%20dashboard/sensordashboardscreen.dart';
@@ -12,22 +10,13 @@ import 'package:untitled123/src/features/authentification/screens/splash_screen/
 import 'package:untitled123/src/features/authentification/screens/welcome/welcome_screen.dart';
 import 'package:untitled123/src/utils/theme/theme.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform
   );
 
-  runApp(
-    MultiProvider( // Enveloppez votre application avec MultiProvider
-      providers: [
-        Provider<IotDataFirebase>(create: (_) => IotDataFirebase()), // Ajoutez votre service
-        // Vous pouvez ajouter d'autres providers ici si nécessaire
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

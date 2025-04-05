@@ -54,7 +54,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Contiki Cooja Sensor Dashboard")),  // Nouveau titre
+      appBar: AppBar(title: Text("Contiki Cooja Sensor Dashboard")),
       body: Stack(
         children: [
           Positioned.fill(
@@ -77,14 +77,41 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    SensorCard(title: "Simulated Temperature (°C)", value: temperature, icon: Icons.thermostat, color: orangeColor),
-                    SensorCard(title: "Simulated Light Intensity (lx)", value: light, icon: Icons.lightbulb, color: yellowColor),
+                    Expanded(
+                      child: SensorCard(
+                        title: "Simulated Temperature (°C)",
+                        value: temperature,
+                        icon: Icons.thermostat,
+                        color: orangeColor,
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: SensorCard(
+                        title: "Simulated Light Intensity (lx)",
+                        value: light,
+                        icon: Icons.lightbulb,
+                        color: yellowColor,
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 20),
-                Expanded(child: SensorGraph(title: "Simulated Temperature Evolution", graphData: temperatureData, color: orangeColor)),
+                Expanded(
+                  child: SensorGraph(
+                    title: "Simulated Temperature Evolution",
+                    graphData: temperatureData,
+                    color: orangeColor,
+                  ),
+                ),
                 SizedBox(height: 20),
-                Expanded(child: SensorGraph(title: "Simulated Light Intensity Evolution", graphData: lightData, color: yellowColor)),
+                Expanded(
+                  child: SensorGraph(
+                    title: "Simulated Light Intensity Evolution",
+                    graphData: lightData,
+                    color: yellowColor,
+                  ),
+                ),
               ],
             ),
           ),
@@ -100,7 +127,12 @@ class SensorCard extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const SensorCard({required this.title, required this.value, required this.icon, required this.color});
+  const SensorCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -109,15 +141,23 @@ class SensorCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 8,
       child: Padding(
-        padding: const EdgeInsets.all(15.0),
+        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 50, color: color),
-            SizedBox(height: 10),
-            Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            Icon(icon, size: 40, color: color),
+            SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
             SizedBox(height: 5),
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+            Text(
+              value,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
           ],
         ),
       ),
@@ -130,7 +170,11 @@ class SensorGraph extends StatelessWidget {
   final List<FlSpot> graphData;
   final Color color;
 
-  const SensorGraph({required this.title, required this.graphData, required this.color});
+  const SensorGraph({
+    required this.title,
+    required this.graphData,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -146,12 +190,22 @@ class SensorGraph extends StatelessWidget {
                 return FlLine(color: Colors.grey, strokeWidth: 0.5);
               }),
               titlesData: FlTitlesData(
-                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
-                  return Text('Day ${(value + 1).toInt()}');  // Afficher les jours sous l'axe X
-                })),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: true),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (value, meta) {
+                      return Text('Day ${(value + 1).toInt()}');
+                    },
+                  ),
+                ),
               ),
-              borderData: FlBorderData(show: true, border: Border.all(color: Colors.black, width: 1)),
+              borderData: FlBorderData(
+                show: true,
+                border: Border.all(color: Colors.black, width: 1),
+              ),
               lineBarsData: [
                 LineChartBarData(
                   spots: graphData,
