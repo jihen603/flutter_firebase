@@ -1,92 +1,78 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-
-import '../../../../../services/aes_helper.dart'; // <- Import du helper
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class SensorDashboard extends StatefulWidget {
-  const SensorDashboard({Key? key}) : super(key: key);
-
   @override
-  State<SensorDashboard> createState() => _SensorDashboardState();
+  _SensorDashboardState createState() => _SensorDashboardState();
 }
 
 class _SensorDashboardState extends State<SensorDashboard> {
-  final dbRef = FirebaseDatabase.instance.ref();
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
+
+  final key = encrypt.Key.fromUtf8('1234567890ABCDEF'); // 16 chars
+  final iv = encrypt.IV.fromUtf8('ABCDEFGHIJKLMNOP');  // 16 chars
+
+  late encrypt.Encrypter encrypter;
 
   String humidity = '';
   String temperature = '';
-  String soilMoisture = '';
   String gas = '';
+  String soilMoisture = '';
   String vibration = '';
 
   @override
   void initState() {
     super.initState();
-    _listenToSensorData();
+    encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    _listenToFirebase();
   }
 
-  void _listenToSensorData() {
-    dbRef.child('DHT/humidity').onValue.listen((event) {
-      setState(() {
-        humidity = decryptAES(event.snapshot.value.toString());
-      });
-    });
+  void _listenToFirebase() {
+    _databaseReference.onValue.listen((event) {
+      final data = event.snapshot.value as Map;
 
-    dbRef.child('DHT/temperature').onValue.listen((event) {
       setState(() {
-        temperature = decryptAES(event.snapshot.value.toString());
-      });
-    });
-
-    dbRef.child('MH-Sensor/soil_moisture').onValue.listen((event) {
-      setState(() {
-        soilMoisture = decryptAES(event.snapshot.value.toString());
-      });
-    });
-
-    dbRef.child('MQ5/gas').onValue.listen((event) {
-      setState(() {
-        gas = decryptAES(event.snapshot.value.toString());
-      });
-    });
-
-    dbRef.child('SW420/vibration').onValue.listen((event) {
-      setState(() {
-        vibration = decryptAES(event.snapshot.value.toString());
+        humidity = decryptAES(data['DHT/humidity']);
+        temperature = decryptAES(data['DHT/temperature']);
+        gas = decryptAES(data['MQ5/gas']);
+        soilMoisture = decryptAES(data['MH-Sensor/soil_moisture']);
+        vibration = decryptAES(data['SW420/vibration']);
       });
     });
   }
 
-  Widget _sensorTile(String label, String value) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(value),
-        leading: const Icon(Icons.sensors),
-      ),
-    );
+  String decryptAES(String base64Text) {
+    try {
+      final encrypted = encrypt.Encrypted.fromBase64(base64Text);
+      final decrypted = encrypter.decrypt(encrypted, iv: iv);
+      return decrypted;
+    } catch (e) {
+      print('Erreur de déchiffrement : $e');
+      return 'Erreur';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sensor Dashboard'),
-        backgroundColor: Colors.teal,
+        title: Text('Sensor Dashboard'),
       ),
-      body: ListView(
-        children: [
-          _sensorTile('Humidité (DHT22)', humidity),
-          _sensorTile('Température (DHT22)', temperature),
-          _sensorTile('Humidité du sol (MH)', soilMoisture),
-          _sensorTile('Gaz (MQ5)', gas),
-          _sensorTile('Vibration (SW420)', vibration),
-        ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Humidity: $humidity', style: TextStyle(fontSize: 18)),
+            Text('Temperature: $temperature', style: TextStyle(fontSize: 18)),
+            Text('Gas: $gas', style: TextStyle(fontSize: 18)),
+            Text('Soil Moisture: $soilMoisture', style: TextStyle(fontSize: 18)),
+            Text('Vibration: $vibration', style: TextStyle(fontSize: 18)),
+          ],
+        ),
       ),
     );
   }
 }
-

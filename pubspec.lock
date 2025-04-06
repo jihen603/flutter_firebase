@@ -169,6 +169,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.3"
+  encryptor:
+    dependency: "direct main"
+    description:
+      name: encryptor
+      sha256: "865701525e720db64d1ce07c64446ecd02450772599fa9e2317dce62bb7761b6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.1"
   equatable:
     dependency: transitive
     description:
