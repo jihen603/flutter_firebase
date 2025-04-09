@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled123/firebase_options.dart';
 import 'package:untitled123/src/features/authentification/screens/AdminDashboard.dart';
@@ -15,6 +16,24 @@ void main() async {
   await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform
   );
+
+  // Initialiser Firebase Cloud Messaging
+  await FirebaseMessaging.instance.requestPermission();
+
+  // Obtenir le token FCM
+  String? token = await FirebaseMessaging.instance.getToken();
+  print("FCM Token: $token");
+
+  // Écouter les notifications en arrière-plan
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print("Notification reçue: ${message.notification?.title}");
+    // Gérer l'affichage de la notification ici
+  });
+
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print("Notification ouverte depuis l'arrière-plan: ${message.notification?.title}");
+    // Naviguer vers un écran spécifique, si nécessaire
+  });
 
   runApp(const MyApp());
 }

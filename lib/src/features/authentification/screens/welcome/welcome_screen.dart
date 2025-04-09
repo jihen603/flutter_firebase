@@ -12,16 +12,28 @@ class WelcomeScreen extends StatefulWidget {
   _WelcomeScreenState createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProviderStateMixin {
   String temperature = "Loading...";
   String light = "Loading...";
   List<FlSpot> temperatureData = [];
   List<FlSpot> lightData = [];
 
+  late AnimationController _iconController;
+
   @override
   void initState() {
     super.initState();
     fetchData();
+    _iconController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _iconController.dispose();
+    super.dispose();
   }
 
   void fetchData() async {
@@ -54,7 +66,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Contiki Cooja Sensor Dashboard")),
       body: Stack(
         children: [
           Positioned.fill(
@@ -69,50 +80,78 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               child: Container(color: Colors.black.withOpacity(0.3)),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Expanded(
-                      child: SensorCard(
-                        title: "Simulated Temperature (°C)",
-                        value: temperature,
-                        icon: Icons.thermostat,
-                        color: orangeColor,
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Custom top bar with title and arrow
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        icon: Icon(Icons.arrow_back, color: Colors.black),
                       ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: SensorCard(
-                        title: "Simulated Light Intensity (lx)",
-                        value: light,
-                        icon: Icons.lightbulb,
-                        color: yellowColor,
+                      SizedBox(width: 10),
+                      Text(
+                        "Contiki Cooja Dashboard",
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Sensor Cards with animation
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: SensorCard(
+                          title: "Simulated Temperature (°C)",
+                          value: temperature,
+                          icon: Icons.thermostat,
+                          color: orangeColor,
+                          controller: _iconController,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: SensorCard(
+                          title: "Simulated Light Intensity (lx)",
+                          value: light,
+                          icon: Icons.lightbulb,
+                          color: yellowColor,
+                          controller: _iconController,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Temperature Graph
+                  Expanded(
+                    child: SensorGraph(
+                      title: "Simulated Temperature Evolution",
+                      graphData: temperatureData,
+                      color: orangeColor,
                     ),
-                  ],
-                ),
-                SizedBox(height: 20),
-                Expanded(
-                  child: SensorGraph(
-                    title: "Simulated Temperature Evolution",
-                    graphData: temperatureData,
-                    color: orangeColor,
                   ),
-                ),
-                SizedBox(height: 20),
-                Expanded(
-                  child: SensorGraph(
-                    title: "Simulated Light Intensity Evolution",
-                    graphData: lightData,
-                    color: yellowColor,
+                  SizedBox(height: 20),
+                  // Light Graph
+                  Expanded(
+                    child: SensorGraph(
+                      title: "Simulated Light Intensity Evolution",
+                      graphData: lightData,
+                      color: yellowColor,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -126,12 +165,14 @@ class SensorCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final AnimationController controller;
 
   const SensorCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    required this.controller,
   });
 
   @override
@@ -146,7 +187,15 @@ class SensorCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: color),
+            AnimatedBuilder(
+              animation: controller,
+              builder: (_, child) {
+                return Transform.translate(
+                  offset: Offset(0, 5 * (1 - controller.value)),
+                  child: Icon(icon, size: 40, color: color),
+                );
+              },
+            ),
             SizedBox(height: 8),
             Text(
               title,

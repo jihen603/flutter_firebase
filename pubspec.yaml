@@ -53,6 +53,8 @@ dependencies:
   slugid: ^1.1.2
   base64: ^1.0.0
   encryptor: ^0.0.1
+  firebase_messaging: ^15.2.5
+
 
 
 dev_dependencies:
