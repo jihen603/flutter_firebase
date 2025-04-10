@@ -320,9 +320,9 @@ class SensorGraph extends StatelessWidget {
                 value.toStringAsFixed(0),
                 style: const TextStyle(color: Colors.white, fontSize: 10),
               ),
-          ),            ),
+            ),            ),
 
-        bottomTitles: AxisTitles(
+          bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
               getTitlesWidget: (value, meta) {
@@ -353,5 +353,4 @@ class SensorGraph extends StatelessWidget {
     );
   }
 }
-
 

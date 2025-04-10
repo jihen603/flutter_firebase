@@ -1,11 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_mail/forget_password_mail.dart';
-import 'package:untitled123/src/features/authentification/screens/forget_password/forget_password_phone/forget_password_phone.dart';
 
 import '../../../../../constants/sizes.dart';
 import '../../../../../constants/text_strings.dart';
-import '../../login_screen.dart';
 import 'forget_password_btn_widget.dart';
 
 class ForgetPasswordScreen {
@@ -53,7 +51,7 @@ class ForgetPasswordScreen {
                 ),
                 const SizedBox(height: 15),
                 Text(
-                  tForgetPasswordTitle,
+                  "Reset your account here",
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -61,7 +59,7 @@ class ForgetPasswordScreen {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  tForgetPasswordSubTitle,
+                  "Enter your email and we’ll send a password reset link.",
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Colors.white70,
                   ),
@@ -73,7 +71,7 @@ class ForgetPasswordScreen {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ForgetPasswordMailScreen(),
+                        builder: (context) => ForgetPasswordMailScreen(),
                       ),
                     );
                   },
@@ -81,22 +79,6 @@ class ForgetPasswordScreen {
                   iconColor: Colors.white,
                   title: tEmail,
                   subTitle: tResetViaEMail,
-                ),
-                const SizedBox(height: 15),
-                ForgetPasswordButtonWidget(
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ForgetPasswordPhoneScreen(),
-                      ),
-                    );
-                  },
-                  btnIcon: Icons.phone_android_rounded,
-                  iconColor: Colors.white,
-                  title: tPhone,
-                  subTitle: tResetViaPhone,
                 ),
                 const SizedBox(height: 10),
               ],
