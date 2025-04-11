@@ -291,6 +291,17 @@ class _LoginScreenState extends State<LoginScreen> {
         fillColor: Colors.white.withOpacity(0.8),
         hintText: "Password",
         prefixIcon: const Icon(Icons.lock, color: Colors.grey),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey,
+          ),
+          onPressed: () {
+            setState(() {
+              _obscurePassword = !_obscurePassword;
+            });
+          },
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
